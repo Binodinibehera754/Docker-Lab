@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -24,7 +23,25 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo 'Running tests'
+                echo 'Starting temporary container and testing application'
+
+                sh '''
+                docker run -d \
+                --name test-container \
+                -p 8080:80 \
+                devops-webapp
+                '''
+
+                sh 'sleep 5'
+
+                sh '''
+                curl --fail http://localhost:8080
+                '''
+
+                sh '''
+                docker stop test-container
+                docker rm test-container
+                '''
             }
         }
 
