@@ -1,54 +1,25 @@
-pipeline {
-    agent any
+stage('Test') {
+    steps {
+        echo 'Starting temporary container and testing application'
 
-    triggers {
-        pollSCM('* * * * *')
-    }
+        sh '''
+        docker rm -f test-container || true
 
-    stages {
+        docker run -d \
+        --name test-container \
+        -p 8081:80 \
+        devops-webapp
+        '''
 
-        stage('Checkout') {
-            steps {
-                echo 'Checking out code from main branch'
-                checkout scm
-            }
-        }
+        sh 'sleep 5'
 
-        stage('Build') {
-            steps {
-                echo 'Building Docker image'
-                sh 'docker build -t devops-webapp .'
-            }
-        }
+        sh '''
+        curl --fail http://localhost:8081
+        '''
 
-        stage('Test') {
-            steps {
-                echo 'Starting temporary container and testing application'
-
-                sh '''
-                docker run -d \
-                --name test-container \
-                -p 8080:80 \
-                devops-webapp
-                '''
-
-                sh 'sleep 5'
-
-                sh '''
-                curl --fail http://localhost:8080
-                '''
-
-                sh '''
-                docker stop test-container
-                docker rm test-container
-                '''
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Deploying application'
-            }
-        }
+        sh '''
+        docker stop test-container
+        docker rm test-container
+        '''
     }
 }
